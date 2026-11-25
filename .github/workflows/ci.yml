@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Unit tests
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Smoke test - vehicle
+        run: ./build/physical_sim_app --profile vehicle --duration 2 --quiet --csv build/vehicle_smoke.csv
+
+      - name: Smoke test - industrial motor
+        run: ./build/physical_sim_app --profile industrial_motor --duration 2 --quiet --csv build/motor_smoke.csv
+
+      - name: Smoke test - water pump
+        run: ./build/physical_sim_app --profile water_pump --duration 2 --quiet --csv build/pump_smoke.csv
+
+      - name: Upload CSV samples
+        uses: actions/upload-artifact@v4
+        with:
+          name: csv-smoke-samples
+          path: build/*_smoke.csv
